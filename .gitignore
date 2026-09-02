@@ -1,0 +1,22 @@
+# virtual environment
+.venv/
+
+# database and data files — regenerable from raw CSVs, too large for git
+*.duckdb
+data/raw/
+data/processed/
+
+# python cache
+__pycache__/
+*.pyc
+
+# Claude Code local session data
+.claude/
+
+# Word temp/lock files
+~$*.docx
+
+# personal job-search materials — not part of the codebase
+Project documents_*.docx
+Project guidelines_*.docx
+READ ME.docx
