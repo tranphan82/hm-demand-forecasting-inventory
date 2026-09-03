@@ -25,7 +25,7 @@ def create_calendar_features(con):
             CASE
                 WHEN sales_date = LAST_DAY(sales_date) THEN 1
                 ELSE 0
-            END AS is_month_ends
+            END AS is_month_end
 
         FROM (
             SELECT DISTINCT sales_date
@@ -34,6 +34,8 @@ def create_calendar_features(con):
 
         ORDER BY sales_date
     """)
+
+
 
 def create_forecastable_products(con):
     con.execute("""
@@ -57,7 +59,7 @@ def create_product_date_spine(con):
         CROSS JOIN forecastable_products p
     """)
 
-def create_forecastbale_base(con):
+def create_forecasting_base(con):
     con.execute("""
         CREATE OR REPLACE TABLE forecasting_base AS
         SELECT
@@ -87,14 +89,44 @@ def create_lag_features(con):
             LAG(quantity_sold, 28) OVER (PARTITION BY article_id ORDER BY sales_date) AS lag_28,
 
             AVG(quantity_sold) OVER (
-            PARTITION BY article_id 
-            ORDER BY sales_date 
-            ROWS BETWEEN 7 PRECEDING AND 1 PRECEDING) AS rolling_avg_7,
+                PARTITION BY article_id 
+                ORDER BY sales_date 
+                ROWS BETWEEN 7 PRECEDING AND 1 PRECEDING) AS rolling_avg_7,
 
             AVG(quantity_sold) OVER (
-            PARTITION BY article_id 
-            ORDER BY sales_date 
-            ROWS BETWEEN 28 PRECEDING AND 1 PRECEDING) AS rolling_avg_28
+                PARTITION BY article_id 
+                ORDER BY sales_date 
+                ROWS BETWEEN 28 PRECEDING AND 1 PRECEDING) AS rolling_avg_28
 
         FROM forecasting_base
+    """)
+
+
+def create_model_features(con):
+    con.execute("""
+        CREATE OR REPLACE TABLE fs_model_features AS
+        SELECT
+            p.sales_date,
+            p.article_id,
+            p.quantity_sold,
+
+            c.sales_year,
+            c.sales_month,
+            c.sales_quarter,
+            c.sales_week,
+            c.day_of_month,
+            c.day_of_week_num,
+            c.is_weekend,
+            c.is_month_start,
+            c.is_month_end,
+
+            p.lag_1,
+            p.lag_7,
+            p.lag_28,
+            p.rolling_avg_7,
+            p.rolling_avg_28
+
+        FROM fs_lag_features p
+        JOIN fs_calendar_features c
+            ON p.sales_date = c.sales_date
     """)

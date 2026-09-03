@@ -10,6 +10,7 @@ def run_all(con, raw_dir="data/raw"):
     features.create_calendar_features(con)
     features.create_forecastable_products(con)
     features.create_product_date_spine(con)
-    features.create_forecastbale_base(con)
+    features.create_forecasting_base(con)
     features.create_lag_features(con)
+    features.create_model_features(con)
 
