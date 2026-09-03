@@ -104,3 +104,16 @@ def create_fact_daily_sales(con):
             sales_date,
             article_id         
     """)
+
+
+def export_to_parquet(con, tables, output_dir = "data/processed"):
+    output_dir = Path(output_dir)
+    output_dir.mkdir(exist_ok = True)
+
+    for table in tables:
+        output_file = output_dir / f"{table}.parquet"
+        con.execute(f"""
+            COPY (SELECT * FROM {table})
+            TO '{output_file.as_posix()}'
+            (FORMAT PARQUET)
+        """) 
