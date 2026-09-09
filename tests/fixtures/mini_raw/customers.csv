@@ -1,0 +1,4 @@
+customer_id,age,club_member_status,fashion_news_frequency,postal_code
+c1,29,ACTIVE,Regularly,10001
+c2,,PRE-CREATE,,10002
+c3,45,ACTIVE,Monthly,10003

@@ -1,0 +1,4 @@
+article_id,product_code,prod_name,product_type_name,product_group_name,graphical_appearance_name,colour_group_name,perceived_colour_value_name,perceived_colour_master_name,department_name,index_name,index_group_name,section_name,garment_group_name,detail_desc
+0000000001,1,Test Tee,T-shirt,Garment Upper body,Solid,Black,Dark,Black,Jersey,Ladieswear,Ladieswear,Womens Everyday Basics,Jersey Basic,A basic tee.
+0000000002,2,Test Dress,Dress,Garment Full body,Solid,Blue,Dark,Blue,Dresses,Ladieswear,Ladieswear,Womens Dresses,Dresses,A basic dress.
+0000000003,3,Test Jeans,Trousers,Garment Lower body,Solid,Blue,Dark,Blue,Denim,Menswear,Menswear,Mens Trousers,Trousers Denim,
