@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 def row_count(con, table):
     return con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
 
@@ -17,6 +18,7 @@ def zero_sales_pct(con):
 
 def fact_date_range(con):
     return con.execute("""
-        SELECR MIN(sales_date) AS min_date, MAX(sales_date) AS max_date
+        SELECT MIN(sales_date) AS min_date, MAX(sales_date) AS max_date
         FROM fact_daily_sales
     """).fetchone()
+
