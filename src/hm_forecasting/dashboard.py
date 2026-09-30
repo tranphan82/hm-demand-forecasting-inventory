@@ -40,14 +40,19 @@ def dead_stock(con):
     """).fetchdf()
 
 # For Geopastial Demand
+#Fix the unknown postal code, found out when running Geospatial Demand dashboard 
+
+UNKNOWN_POSTAL_CODE = "2c29ae653a9282cce4151bd87643c907644e09541abc28ae87dea0d1f6603b1c"
+
 def geospatial_demand(con):
-    return con.execute("""
+    return con.execute(f"""
         SELECT
             c.postal_code,
             COUNT(*) AS units_sold,
             COUNT(DISTINCT t.customer_id) AS unique_customers
         FROM stg_transactions t
         JOIN dim_customer c ON t.customer_id = c.customer_id
+        WHERE c.postal_code != '{UNKNOWN_POSTAL_CODE}'
         GROUP BY c.postal_code
         ORDER BY units_sold DESC
     """).fetchdf()

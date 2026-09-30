@@ -38,6 +38,10 @@ def test_dead_stock_computes_days_since_last_sale(dashboard_con):
 
 
 # Testing for Geopastial Demand
+# To fix the UNKNOWN_POSTAL_CODE found in runing Streamlit Geospatial Demand,
+# add this assertion
+from hm_forecasting.dashboard import UNKNOWN_POSTAL_CODE
+
 def test_geospatial_demand_aggregates_by_postal_code(geospatial_con):
     result = geospatial_demand(geospatial_con)
 
@@ -48,3 +52,4 @@ def test_geospatial_demand_aggregates_by_postal_code(geospatial_con):
     assert by_postal.loc["10001", "unique_customers"] == 2
     assert by_postal.loc["20002", "units_sold"] == 1
     assert by_postal.loc["20002", "unique_customers"] == 1
+    assert UNKNOWN_POSTAL_CODE not in result["postal_code"].values # add this line to fix unknown postal code

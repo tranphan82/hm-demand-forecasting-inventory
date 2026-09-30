@@ -10,6 +10,8 @@ from hm_forecasting.features import (
     create_forecasting_base
 )
 
+from hm_forecasting.dashboard import UNKNOWN_POSTAL_CODE # to fix unknown postal code
+
 FIXTURES_DIR = "tests/fixtures/mini_raw"
 
 @pytest.fixture
@@ -91,17 +93,18 @@ def dashboard_con(con):
 # Add new fixture for Geopastial Demand testing
 @pytest.fixture
 def geospatial_con(con):
+    # add one more row to each DataFrame inside geospatial_con:
     stg_transactions = pd.DataFrame({
-        "t_dat": ["2024-01-01", "2024-01-01", "2024-01-01", "2024-01-02", "2024-01-02", "2024-01-03"],
-        "customer_id": ["c1", "c1", "c1", "c2", "c2", "c3"],
-        "article_id": ["P1", "P1", "P1", "P1", "P1", "P1"],
-        "price": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        "t_dat": ["2024-01-01", "2024-01-01", "2024-01-01", "2024-01-02", "2024-01-02", 
+                  "2024-01-03", "2024-01-04"], # add "2024-01-04" to fix unknown postal code
+        "customer_id": ["c1", "c1", "c1", "c2", "c2", "c3", "c4"], # add "c4" 
+        "article_id": ["P1", "P1", "P1", "P1", "P1", "P1", "P1"], # add one more "P1"
+        "price": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0], # add 1 more 10.0
     })
 
     dim_customer = pd.DataFrame({
-        "customer_id": ["c1", "c2", "c3"],
-        "postal_code": ["10001", "10001", "20002"],
-    })
+        "customer_id": ["c1", "c2", "c3", "c4"], # add "c4"
+        "postal_code": ["10001", "10001", "20002", UNKNOWN_POSTAL_CODE]}) # add unknown_postal_code
 
     con.register("stg_transactions_df", stg_transactions)
     con.execute("CREATE TABLE stg_transactions AS SELECT * FROM stg_transactions_df")
