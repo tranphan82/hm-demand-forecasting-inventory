@@ -86,12 +86,18 @@ def create_lag_features(con):
 
             LAG(quantity_sold, 1) OVER (PARTITION BY article_id ORDER BY sales_date) AS lag_1,
             LAG(quantity_sold, 7) OVER (PARTITION BY article_id ORDER BY sales_date) AS lag_7,
+            LAG(quantity_sold, 14) OVER (PARTITION BY article_id ORDER BY sales_date) AS lag_14,
             LAG(quantity_sold, 28) OVER (PARTITION BY article_id ORDER BY sales_date) AS lag_28,
 
             AVG(quantity_sold) OVER (
                 PARTITION BY article_id 
                 ORDER BY sales_date 
                 ROWS BETWEEN 7 PRECEDING AND 1 PRECEDING) AS rolling_avg_7,
+
+            AVG(quantity_sold) OVER (
+                PARTITION BY article_id 
+                ORDER BY sales_date 
+                ROWS BETWEEN 14 PRECEDING AND 1 PRECEDING) AS rolling_avg_14,    
 
             AVG(quantity_sold) OVER (
                 PARTITION BY article_id 
@@ -122,6 +128,7 @@ def create_model_features(con):
 
             p.lag_1,
             p.lag_7,
+            p.lag_14,
             p.lag_28,
             p.rolling_avg_7,
             p.rolling_avg_28
