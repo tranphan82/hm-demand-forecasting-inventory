@@ -90,7 +90,7 @@ def dashboard_con(con):
     return con  
 
 
-# Add new fixture for Geopastial Demand testing
+# Add new fixture for Geopastial Demand testing hm_forecasting\dashboard.py
 @pytest.fixture
 def geospatial_con(con):
     # add one more row to each DataFrame inside geospatial_con:
@@ -113,3 +113,25 @@ def geospatial_con(con):
     con.execute("CREATE TABLE dim_customer AS SELECT * FROM dim_customer_df")
 
     return con
+
+
+# Fixturfe to test the baseline model in hm_forecasting\modeling.py
+@pytest.fixture
+def modeling_con(con):
+    fs_model_features = pd.DataFrame({
+        "sales_date": pd.date_range("2024-01-01", periods=10, freq="D"),
+        "article_id": "A0001",
+        "quantity_sold": [5, 6, 7, 8, 9, 10, 11, 12, 13, 17],
+        "lag_7": [None] * 7 + [5, 6, 7],
+    })
+
+    con.register("fs_model_features_df", fs_model_features)
+    con.execute("""
+        Create Table fs_model_features As
+        Select Cast(sales_date As Date) As Sales_date, article_id, quantity_sold, lag_7
+        From fs_model_features_df    
+    """)
+
+    return con
+
+
