@@ -1,6 +1,8 @@
 duckdb==1.5.3
 pandas==2.3.3
 streamlit==1.64.0
+lightgbm==4.7.0
 
 # testing
 pytest==9.1.1
+
