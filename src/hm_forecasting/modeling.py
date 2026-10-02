@@ -22,3 +22,37 @@ def baseline_predictions(con, split_date):
 
 def mean_absolute_error(actual, predicted):
     return (actual - predicted).abs().mean()
+
+# Function for LightGBM
+# LightGBM - Function for train and test set
+FEATURE_COLUMNS = [
+    "lag_1", "lag_7", "lag_14", "lag_28",
+    "rolling_avg_7", "rolling_avg_28",
+    "sales_month", "sales_quarter", "sales_week",
+    "day_of_week_num", "is_weekend", "is_month_start", "is_month_end",
+]
+TARGET = "quantity_sold"
+
+
+def build_train_test(con, split_date, train_sample_pct=10):
+    columns = ", ".join(["sales_date", "article_id", TARGET] + FEATURE_COLUMNS)
+
+    train = con.execute(f"""
+        SELECT {columns}
+        FROM fs_model_features
+        WHERE sales_date < ?
+          AND lag_7 IS NOT NULL
+          AND hash(article_id || CAST(sales_date AS VARCHAR)) % 100 < ?
+        ORDER BY sales_date, article_id
+    """, [split_date, train_sample_pct]).fetchdf()
+
+    test = con.execute(f"""
+        SELECT {columns}
+        FROM fs_model_features
+        WHERE sales_date >= ?
+          AND lag_7 IS NOT NULL
+        ORDER BY sales_date, article_id
+    """, [split_date]).fetchdf()
+
+    return train, test 
+    

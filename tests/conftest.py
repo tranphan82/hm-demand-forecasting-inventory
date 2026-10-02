@@ -115,7 +115,7 @@ def geospatial_con(con):
     return con
 
 
-# Fixturfe to test the baseline model in hm_forecasting\modeling.py
+# Fixture to test the baseline model in hm_forecasting\modeling.py
 @pytest.fixture
 def modeling_con(con):
     fs_model_features = pd.DataFrame({
@@ -134,4 +134,38 @@ def modeling_con(con):
 
     return con
 
+
+# Fixture to test the LightGBM model
+@pytest.fixture
+def train_test_con(con):
+    n = 20
+    quantity = list(range(1, n + 1))
+
+    fs_model_features = pd.DataFrame({
+        "sales_date": pd.date_range("2024-01-01", periods=n, freq="D"),
+        "article_id": "A0001",
+        "quantity_sold": quantity,
+        "lag_1": [None] + quantity[:-1],
+        "lag_7": [None] * 7 + quantity[:n - 7],
+        "lag_14": [None] * 14 + quantity[:n - 14],
+        "lag_28": [float("nan")] * n,
+        "rolling_avg_7": 0.0,
+        "rolling_avg_28": 0.0,
+        "sales_month": 1,
+        "sales_quarter": 1,
+        "sales_week": 1,
+        "day_of_week_num": 0,
+        "is_weekend": 0,
+        "is_month_start": 0,
+        "is_month_end": 0,
+    })
+
+    con.register("fs_model_features_df", fs_model_features)
+    con.execute("""
+        CREATE TABLE fs_model_features AS
+        SELECT CAST(sales_date AS DATE) AS sales_date, * EXCLUDE (sales_date)
+        FROM fs_model_features_df
+    """)
+
+    return con
 
