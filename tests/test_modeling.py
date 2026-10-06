@@ -1,6 +1,15 @@
 import pandas as pd
 
-from hm_forecasting.modeling import get_split_date, baseline_predictions, mean_absolute_error
+from hm_forecasting.modeling import (
+    FEATURE_COLUMNS,
+    baseline_predictions,
+    build_train_test,
+    get_split_date,
+    mean_absolute_error,
+    predict,
+    root_mean_squared_error,
+    train_lightgbm,
+)
 
 
 # Test for baseline model
@@ -70,3 +79,26 @@ def test_build_train_test_sample_is_repeatable(train_test_con):
     second, _ = build_train_test(train_test_con, split_date, train_sample_pct=50)
 
     assert first.equals(second)
+
+
+# Test for 3 functions from train_lightgbm, predict and root_mean_squared_error
+def test_train_lightgbm_predicts_non_negative_value_for_every_test_row(train_test_con):
+    split_date = get_split_date(train_test_con, test_days=3)
+    train, test = build_train_test(train_test_con, split_date, train_sample_pct=100)
+
+    model = train_lightgbm(
+        train,
+        {"min_data_in_leaf": 1, "min_data_in_bin": 1},
+        num_boost_round=5,
+    )
+    predictions = predict(model, test)
+
+    assert len(predictions) == len(test)
+    assert (predictions >= 0).all()
+
+
+def test_root_mean_squared_error():
+    actual = pd.Series([10, 20])
+    predicted = pd.Series([9, 13])
+
+    assert root_mean_squared_error(actual, predicted) == 5.0

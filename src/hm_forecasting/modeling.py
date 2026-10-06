@@ -1,3 +1,5 @@
+import lightgbm as lgb
+
 # Define the train/test boundary by date, not by ratio 80/20
 def get_split_date(con, test_days=28, table="fs_model_features"):
     return con.execute(f"""
@@ -55,4 +57,27 @@ def build_train_test(con, split_date, train_sample_pct=10):
     """, [split_date]).fetchdf()
 
     return train, test 
-    
+
+# Building the model LightGBM itself:
+DEFAULT_PARAMS = {
+    "objective": "tweedie",
+    "tweedie_variance_power": 1.2,
+    "learning_rate": 0.05,
+    "num_leaves": 63,
+    "seed": 42,
+    "verbosity": -1,
+}
+
+
+def train_lightgbm(train, params=None, num_boost_round=200):
+    params = {**DEFAULT_PARAMS, **(params or {})}
+    dataset = lgb.Dataset(train[FEATURE_COLUMNS], label=train[TARGET])
+    return lgb.train(params, dataset, num_boost_round=num_boost_round)
+
+
+def predict(model, df):
+    return model.predict(df[FEATURE_COLUMNS])
+
+
+def root_mean_squared_error(actual, predicted):
+    return ((actual - predicted) ** 2).mean() ** 0.5
