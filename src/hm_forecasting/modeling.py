@@ -1,4 +1,5 @@
 import lightgbm as lgb
+from datetime import timedelta
 
 # Define the train/test boundary by date, not by ratio 80/20
 def get_split_date(con, test_days=28, table="fs_model_features"):
@@ -35,8 +36,9 @@ FEATURE_COLUMNS = [
 ]
 TARGET = "quantity_sold"
 
-
-def build_train_test(con, split_date, train_sample_pct=10):
+# This function has been modified to include 4-windows to check the robustness of LightGBM
+# added "end_date=None" in arguments
+def build_train_test(con, split_date, train_sample_pct=10, end_date=None):
     columns = ", ".join(["sales_date", "article_id", TARGET] + FEATURE_COLUMNS)
 
     train = con.execute(f"""
@@ -48,13 +50,18 @@ def build_train_test(con, split_date, train_sample_pct=10):
         ORDER BY sales_date, article_id
     """, [split_date, train_sample_pct]).fetchdf()
 
+    # these 2 lines are added:
+    end_clause = "AND sales_date < ?" if end_date is not None else ""
+    test_params = [split_date] + ([end_date] if end_date is not None else [])
+
     test = con.execute(f"""
         SELECT {columns}
         FROM fs_model_features
         WHERE sales_date >= ?
+          {end_clause}
           AND lag_7 IS NOT NULL
         ORDER BY sales_date, article_id
-    """, [split_date]).fetchdf()
+    """, test_params).fetchdf()
 
     return train, test 
 
@@ -81,3 +88,16 @@ def predict(model, df):
 
 def root_mean_squared_error(actual, predicted):
     return ((actual - predicted) ** 2).mean() ** 0.5
+
+
+# This function is to lay out the windows - part of Robutness check of LightGBM
+def backtest_windows(con, n_windows=4, test_days=28, step_days=90, table="fs_model_features"):
+    last_date = con.execute(f"SELECT MAX(sales_date) FROM {table}").fetchone()[0]
+
+    windows = []
+    for k in range(n_windows):
+        start = last_date - timedelta(days=test_days + k * step_days)
+        end = start + timedelta(days=test_days + 1)
+        windows.append((start, end))
+    return windows
+

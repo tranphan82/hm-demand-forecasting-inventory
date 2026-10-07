@@ -1,4 +1,5 @@
 import pandas as pd
+from datetime import date
 
 from hm_forecasting.modeling import (
     FEATURE_COLUMNS,
@@ -9,6 +10,7 @@ from hm_forecasting.modeling import (
     predict,
     root_mean_squared_error,
     train_lightgbm,
+    backtest_windows,
 )
 
 
@@ -102,3 +104,23 @@ def test_root_mean_squared_error():
     predicted = pd.Series([9, 13])
 
     assert root_mean_squared_error(actual, predicted) == 5.0
+
+
+# This function is to test the Robutness Check of LightGBM
+def test_backtest_windows_step_backwards_from_last_date(train_test_con):
+    windows = backtest_windows(train_test_con, n_windows=2, test_days=3, step_days=5)
+
+    assert windows == [
+        (date(2024, 1, 17), date(2024, 1, 21)),
+        (date(2024, 1, 12), date(2024, 1, 16)),
+    ]
+
+
+def test_build_train_test_end_date_bounds_the_test_window(train_test_con):
+    train, test = build_train_test(
+        train_test_con, date(2024, 1, 12), train_sample_pct=100, end_date=date(2024, 1, 16)
+    )
+
+    assert len(test) == 4
+    assert str(test["sales_date"].max().date()) == "2024-01-15"
+    assert str(train["sales_date"].max().date()) == "2024-01-11"
