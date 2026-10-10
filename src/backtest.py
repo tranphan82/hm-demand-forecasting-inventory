@@ -23,6 +23,8 @@ if __name__ == "__main__":
         forecasts = {
             "zero": pd.Series(0.0, index=actual.index),
             "naive": test["lag_7"],
+            "ma7": test["rolling_avg_7"],
+            "ma28": test["rolling_avg_28"],
             "lgbm": predict(model, test),
         }
 
@@ -33,10 +35,21 @@ if __name__ == "__main__":
         rows.append(row)
 
     results = pd.DataFrame(rows)
-    results["mae_gain"] = 1 - results["lgbm_mae"] / results["naive_mae"]
-    results["rmse_gain"] = 1 - results["lgbm_rmse"] / results["naive_rmse"]
+    best_ma_mae = results[["ma7_mae", "ma28_mae"]].min(axis=1)
+    best_ma_rmse = results[["ma7_rmse", "ma28_rmse"]].min(axis=1)
+    results["mae_gain_vs_best_ma"] = 1 - results["lgbm_mae"] / best_ma_mae
+    results["rmse_gain_vs_best_ma"] = 1 - results["lgbm_rmse"] / best_ma_rmse
 
     pd.set_option("display.width", 250)
-    print()
-    print(results.round(4).to_string(index=False))
+    print("\nMAE")
+    print(results[["window_start", "zero_mae", "naive_mae", "ma7_mae", "ma28_mae", "lgbm_mae"]]
+          .round(4).to_string(index=False))
+    print("\nRMSE")
+    print(results[["window_start", "zero_rmse", "naive_rmse", "ma7_rmse", "ma28_rmse", "lgbm_rmse"]]
+          .round(4).to_string(index=False))
+    print("\nLightGBM gain vs the better moving average")
+    print(results[["window_start", "mae_gain_vs_best_ma", "rmse_gain_vs_best_ma"]]
+          .round(4).to_string(index=False))
+
     con.close()
+    
