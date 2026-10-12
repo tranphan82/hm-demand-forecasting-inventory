@@ -3,6 +3,7 @@ from datetime import date
 
 from hm_forecasting.modeling import (
     FEATURE_COLUMNS,
+    CATEGORICAL_COLUMNS,
     baseline_predictions,
     build_train_test,
     get_split_date,
@@ -11,6 +12,7 @@ from hm_forecasting.modeling import (
     root_mean_squared_error,
     train_lightgbm,
     backtest_windows,
+
 )
 
 
@@ -124,3 +126,12 @@ def test_build_train_test_end_date_bounds_the_test_window(train_test_con):
     assert len(test) == 4
     assert str(test["sales_date"].max().date()) == "2024-01-15"
     assert str(train["sales_date"].max().date()) == "2024-01-11"
+
+def test_build_train_test_categorical_share_categories(train_test_con):
+    split_date = get_split_date(train_test_con, test_days=3)
+    train, test = build_train_test(train_test_con, split_date, train_sample_pct=100)
+
+    for column in CATEGORICAL_COLUMNS:
+        assert str(train[column].dtype) == "category"
+        assert list(train[column].cat.categories) == list(test[column].cat.categories)
+

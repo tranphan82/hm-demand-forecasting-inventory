@@ -1,4 +1,5 @@
 import lightgbm as lgb
+import pandas as pd 
 from datetime import timedelta
 
 # Define the train/test boundary by date, not by ratio 80/20
@@ -28,12 +29,19 @@ def mean_absolute_error(actual, predicted):
 
 # Function for LightGBM
 # LightGBM - Function for train and test set
+
+CATEGORICAL_COLUMNS = [
+    "product_group_name", "garment_group_name", "index_name",
+    "section_name", "color_group_name",
+]
+
 FEATURE_COLUMNS = [
     "lag_1", "lag_7", "lag_14", "lag_28",
     "rolling_avg_7", "rolling_avg_28",
     "sales_month", "sales_quarter", "sales_week",
     "day_of_week_num", "is_weekend", "is_month_start", "is_month_end",
-]
+] + CATEGORICAL_COLUMNS
+
 TARGET = "quantity_sold"
 
 # This function has been modified to include 4-windows to check the robustness of LightGBM
@@ -62,6 +70,12 @@ def build_train_test(con, split_date, train_sample_pct=10, end_date=None):
           AND lag_7 IS NOT NULL
         ORDER BY sales_date, article_id
     """, test_params).fetchdf()
+
+    for column in CATEGORICAL_COLUMNS:
+        categories = sorted(train[column].dropna().unique())
+        train[column] = pd.Categorical(train[column], categories=categories)
+        test[column] = pd.Categorical(test[column], categories=categories)
+
 
     return train, test 
 

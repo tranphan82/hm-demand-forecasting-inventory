@@ -115,12 +115,14 @@ def test_model_features_joins_calendar_and_lag_data(forecasting_base_con):
     create_model_features(forecasting_base_con)
 
     result = forecasting_base_con.execute("""
-        SELECT sales_month, day_of_week_num, is_weekend, lag_1, lag_14, rolling_avg_7
+        SELECT 
+            sales_month, day_of_week_num, is_weekend, lag_1, lag_14, rolling_avg_7,
+            product_group_name, color_group_name
         FROM fs_model_features
         WHERE sales_date = '2024-01-29'
     """).fetchone()
 
-    assert result == (1, 1, 0, 28, 15, 25.0)
+    assert result == (1, 1, 0, 28, 15, 25.0, "Garment Upper body", "Black")
 
 
 # Last test: a grain/integrity check: no duplicate (article_id, sales_date) rows, 

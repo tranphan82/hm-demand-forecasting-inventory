@@ -60,6 +60,18 @@ def forecasting_base_con(fact_daily_sales_con):
     create_forecastable_products(fact_daily_sales_con)
     create_product_date_spine(fact_daily_sales_con)
     create_forecasting_base(fact_daily_sales_con)
+
+    dim_product = pd.DataFrame({
+        "article_id": ["A0001", "B0002"],
+        "product_group_name": ["Garment Upper body", "Swimwear"],
+        "garment_group_name": ["Jersey Basic", "Swimwear"],
+        "index_name": ["Ladieswear", "Ladieswear"],
+        "section_name": ["Womens Everyday Basics", "Womens Swimwear"],
+        "color_group_name": ["Black", "Blue"], 
+    })
+    fact_daily_sales_con.register("dim_product_df", dim_product)
+    fact_daily_sales_con.execute("CREATE TABLE dim_product AS SELECT * FROM dim_product_df")
+        
     return fact_daily_sales_con
 
 
@@ -158,6 +170,12 @@ def train_test_con(con):
         "is_weekend": 0,
         "is_month_start": 0,
         "is_month_end": 0,
+         "product_group_name": ["Garment Upper body", "Swimwear"] * 10,
+        "garment_group_name": "Jersey Basic",
+        "index_name": "Ladieswear",
+        "section_name": "Womens Everyday Basics",
+        "color_group_name": "Black",
+
     })
 
     con.register("fs_model_features_df", fs_model_features)

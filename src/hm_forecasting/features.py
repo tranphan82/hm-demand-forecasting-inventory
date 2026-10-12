@@ -126,6 +126,12 @@ def create_model_features(con):
             c.is_month_start,
             c.is_month_end,
 
+            d.product_group_name,
+            d.garment_group_name,
+            d.index_name,
+            d.section_name,
+            d.color_group_name,
+
             p.lag_1,
             p.lag_7,
             p.lag_14,
@@ -136,4 +142,6 @@ def create_model_features(con):
         FROM fs_lag_features p
         JOIN fs_calendar_features c
             ON p.sales_date = c.sales_date
+        JOIn dim_product d
+            On p.article_id = d.article_id
     """)
