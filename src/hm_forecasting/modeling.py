@@ -30,14 +30,14 @@ def mean_absolute_error(actual, predicted):
 # Function for LightGBM
 # LightGBM - Function for train and test set
 
-CATEGORICAL_COLUMNS = [
-    "product_group_name", "garment_group_name", "index_name",
-    "section_name", "color_group_name",
-]
+# Tested product_group_name, garment_group_name, index_name, section_name and
+# color_group_name in a 4-window backtest: no reliable gain, so switched off.
+CATEGORICAL_COLUMNS = []
 
 FEATURE_COLUMNS = [
     "lag_1", "lag_7", "lag_14", "lag_28",
     "rolling_avg_7", "rolling_avg_28",
+    "last_price", "price_ratio_28",
     "sales_month", "sales_quarter", "sales_week",
     "day_of_week_num", "is_weekend", "is_month_start", "is_month_end",
 ] + CATEGORICAL_COLUMNS

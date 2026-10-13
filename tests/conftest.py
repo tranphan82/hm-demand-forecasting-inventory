@@ -170,6 +170,8 @@ def train_test_con(con):
         "is_weekend": 0,
         "is_month_start": 0,
         "is_month_end": 0,
+        "last_price": 10.0,
+        "price_ratio_28": 1.0,
          "product_group_name": ["Garment Upper body", "Swimwear"] * 10,
         "garment_group_name": "Jersey Basic",
         "index_name": "Ladieswear",
@@ -187,3 +189,20 @@ def train_test_con(con):
 
     return con
 
+# Test fixture for price_feature attribute
+@pytest.fixture
+def price_con(con):
+    forecasting_base = pd.DataFrame({
+        "sales_date": pd.date_range("2024-01-01", periods=7, freq="D"),
+        "article_id": "A0001",
+        "average_unit_price": [10.0, 10.0, 0.0, 8.0, 4.0, 0.0, 0.0],
+    })
+
+    con.register("forecasting_base_df", forecasting_base)
+    con.execute("""
+        CREATE TABLE forecasting_base AS
+        SELECT CAST(sales_date AS DATE) AS sales_date, article_id, average_unit_price
+        FROM forecasting_base_df
+    """)
+
+    return con

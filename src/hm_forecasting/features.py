@@ -137,11 +137,43 @@ def create_model_features(con):
             p.lag_14,
             p.lag_28,
             p.rolling_avg_7,
-            p.rolling_avg_28
+            p.rolling_avg_28,
+
+            pr.last_price,
+            pr.price_ratio_28,
 
         FROM fs_lag_features p
         JOIN fs_calendar_features c
             ON p.sales_date = c.sales_date
         JOIn dim_product d
             On p.article_id = d.article_id
+        JOIN fs_price_features pr
+            ON p.sales_date = pr.sales_date
+            AND p.article_id = pr.article_id
+
+    """)
+
+# Create this function for testing the price_feature:
+def create_price_features(con):
+    con.execute("""
+        CREATE OR REPLACE TABLE fs_price_features AS
+        SELECT
+            sales_date,
+            article_id,
+            last_price,
+            last_price / avg_price_28 AS price_ratio_28
+        FROM (
+            SELECT
+                sales_date,
+                article_id,
+                LAST_VALUE(NULLIF(average_unit_price, 0) IGNORE NULLS) OVER (
+                    PARTITION BY article_id ORDER BY sales_date
+                    ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+                ) AS last_price,
+                AVG(NULLIF(average_unit_price, 0)) OVER (
+                    PARTITION BY article_id ORDER BY sales_date
+                    ROWS BETWEEN 28 PRECEDING AND 1 PRECEDING
+                ) AS avg_price_28
+            FROM forecasting_base
+        )
     """)

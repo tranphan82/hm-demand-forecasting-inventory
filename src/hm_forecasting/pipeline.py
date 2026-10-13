@@ -12,5 +12,6 @@ def run_all(con, raw_dir="data/raw"):
     features.create_product_date_spine(con)
     features.create_forecasting_base(con)
     features.create_lag_features(con)
+    features.create_price_features(con)
     features.create_model_features(con)
 

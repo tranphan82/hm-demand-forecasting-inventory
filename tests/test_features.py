@@ -7,7 +7,8 @@ from hm_forecasting.features import (
     create_product_date_spine,
     create_forecasting_base,
     create_lag_features,
-    create_model_features
+    create_model_features,
+    create_price_features
 )
 
 
@@ -112,17 +113,18 @@ def test_rolling_averages_exclude_current_day():
 
 def test_model_features_joins_calendar_and_lag_data(forecasting_base_con):
     create_lag_features(forecasting_base_con)
+    create_price_features(forecasting_base_con)
     create_model_features(forecasting_base_con)
 
     result = forecasting_base_con.execute("""
         SELECT 
             sales_month, day_of_week_num, is_weekend, lag_1, lag_14, rolling_avg_7,
-            product_group_name, color_group_name
+            product_group_name, color_group_name, last_price, price_ratio_28
         FROM fs_model_features
         WHERE sales_date = '2024-01-29'
     """).fetchone()
 
-    assert result == (1, 1, 0, 28, 15, 25.0, "Garment Upper body", "Black")
+    assert result == (1, 1, 0, 28, 15, 25.0, "Garment Upper body", "Black", 10.0, 1.0)
 
 
 # Last test: a grain/integrity check: no duplicate (article_id, sales_date) rows, 
@@ -145,3 +147,28 @@ def test_forecasting_base_has_no_duplicate_or_missing_dates(forecasting_base_con
 
     assert total_rows == distinct_rows
     assert total_rows == (max_date - min_date).days + 1
+
+# Thzis fuction to test the price attribute after LightGBM with product attributes
+def test_price_features_carry_forward_and_exclude_today(price_con):
+    create_price_features(price_con)
+
+    result = price_con.execute("""
+        SELECT last_price, price_ratio_28
+        FROM fs_price_features
+        ORDER BY sales_date
+    """).fetchdf()
+
+    assert result["last_price"].isna().iloc[0]
+    assert result["price_ratio_28"].isna().iloc[0]
+
+    assert result["last_price"].iloc[2] == 10.0
+    assert result["price_ratio_28"].iloc[2] == 1.0
+
+    assert result["last_price"].iloc[4] == 8.0
+
+    assert result["last_price"].iloc[5] == 4.0
+    assert result["price_ratio_28"].iloc[5] == 0.5
+
+    assert result["last_price"].iloc[6] == 4.0
+    assert result["price_ratio_28"].iloc[6] == 0.5
+
