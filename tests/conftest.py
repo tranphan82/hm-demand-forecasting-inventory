@@ -206,3 +206,33 @@ def price_con(con):
     """)
 
     return con
+
+
+@pytest.fixture
+def intermittent_con(con):
+    def rows(article_id, offsets, start="2024-01-01"):
+        dates = pd.Timestamp(start) + pd.to_timedelta(list(offsets), unit="D")
+        return pd.DataFrame({
+            "sales_date": dates,
+            "article_id": article_id,
+            "total_quantity_sold": 1,
+        })
+
+    fact_daily_sales = pd.concat([
+        rows("A_SPARSE", range(0, 96, 8)),
+        rows("F_SPARSE2", range(0, 96, 12)),
+        rows("B_DENSE", range(0, 50)),
+        rows("C_TOO_FEW", range(0, 80, 20)),
+        rows("E_SHORT_HISTORY", range(0, 25, 5), start="2024-03-01"),
+        rows("H_BECOMES_DENSE", range(0, 36, 6)),
+        rows("H_BECOMES_DENSE", range(100, 140)),
+    ], ignore_index=True)
+
+    con.register("fact_daily_sales_df", fact_daily_sales)
+    con.execute("""
+        CREATE TABLE fact_daily_sales AS
+        SELECT CAST(sales_date AS DATE) AS sales_date, article_id, total_quantity_sold
+        FROM fact_daily_sales_df
+    """)
+
+    return con
