@@ -37,7 +37,6 @@ CATEGORICAL_COLUMNS = []
 FEATURE_COLUMNS = [
     "lag_1", "lag_7", "lag_14", "lag_28",
     "rolling_avg_7", "rolling_avg_28",
-    "last_price", "price_ratio_28",
     "sales_month", "sales_quarter", "sales_week",
     "day_of_week_num", "is_weekend", "is_month_start", "is_month_end",
 ] + CATEGORICAL_COLUMNS
