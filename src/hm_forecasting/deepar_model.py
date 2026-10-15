@@ -1,6 +1,7 @@
 from gluonts.dataset.common import ListDataset
 from gluonts.torch.distributions import NegativeBinomialOutput
 from gluonts.torch.model.deepar import DeepAREstimator
+from lightning.pytorch import seed_everything
 
 
 def train_deepar(
@@ -10,7 +11,9 @@ def train_deepar(
     max_epochs=5,
     num_batches_per_epoch=50,
     num_parallel_samples=200,
+    seed=42,
 ):
+    seed_everything(seed)
     estimator = DeepAREstimator(
         freq="D",
         prediction_length=prediction_length,
