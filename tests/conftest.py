@@ -236,3 +236,35 @@ def intermittent_con(con):
     """)
 
     return con
+
+
+# Test for the segmentation
+@pytest.fixture
+def segments_con(con):
+    def rows(article_id, offsets, quantities):
+        dates = pd.Timestamp("2024-01-01") + pd.to_timedelta(list(offsets), unit="D")
+        return pd.DataFrame({
+            "sales_date": dates,
+            "article_id": article_id,
+            "total_quantity_sold": quantities,
+        })
+
+    fact_daily_sales = pd.concat([
+        rows("SMOOTH", range(100), [10] * 100),
+        rows("ERRATIC", range(100), [1, 19] * 50),
+        rows("INTERMITTENT", range(0, 100, 5), [10] * 20),
+        rows("LUMPY", range(0, 100, 5), [1, 19] * 10),
+        rows("DORMANT", range(10), [10] * 10),
+        rows("NEW", range(70, 80), [10] * 10),
+    ], ignore_index=True)
+
+    con.register("fact_daily_sales_df", fact_daily_sales)
+    con.execute("""
+        CREATE TABLE fact_daily_sales AS
+        SELECT CAST(sales_date AS DATE) AS sales_date, article_id, total_quantity_sold
+        FROM fact_daily_sales_df
+    """)
+
+    return con
+
+
