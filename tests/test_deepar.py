@@ -1,6 +1,7 @@
+import pandas as pd
 from datetime import date
 
-from hm_forecasting.deepar import select_intermittent_articles
+from hm_forecasting.deepar import (select_intermittent_articles, build_series)
 
 AS_OF = date(2024, 4, 10)
 RULES = {"min_sales_days": 5, "min_active_days": 60}
@@ -18,3 +19,19 @@ def test_select_intermittent_articles_sample_is_exact_and_repeatable(intermitten
 
     assert len(first) == 2
     assert first == second
+
+# Test the build_series in deepar.py(turn product into time series)
+def test_build_series_zero_fills_missing_days(intermittent_con):
+    series = build_series(intermittent_con, ["A_SPARSE", "E_SHORT_HISTORY"], date(2024, 1, 11))
+    by_id = {s["item_id"]: s for s in series}
+
+    assert list(by_id) == ["A_SPARSE"]
+    assert by_id["A_SPARSE"]["start"] == pd.Timestamp("2024-01-01")
+    assert by_id["A_SPARSE"]["target"].tolist() == [1, 0, 0, 0, 0, 0, 0, 0, 1, 0]
+
+
+def test_build_series_starts_at_each_products_first_sale(intermittent_con):
+    series = build_series(intermittent_con, ["E_SHORT_HISTORY"], date(2024, 3, 10))
+
+    assert series[0]["start"] == pd.Timestamp("2024-03-01")
+    assert series[0]["target"].tolist() == [1, 0, 0, 0, 0, 1, 0, 0, 0]
