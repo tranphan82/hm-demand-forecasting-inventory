@@ -20,3 +20,6 @@ __pycache__/
 Project documents_*.docx
 Project guidelines_*.docx
 READ ME.docx
+
+# DeepAr training make PyTorch Lightning write a lightning_logs/
+lightning_logs/
