@@ -1,5 +1,6 @@
 import lightgbm as lgb
 import pandas as pd 
+import numpy as np 
 from datetime import timedelta
 
 # Define the train/test boundary by date, not by ratio 80/20
@@ -113,4 +114,42 @@ def backtest_windows(con, n_windows=4, test_days=28, step_days=90, table="fs_mod
         end = start + timedelta(days=test_days + 1)
         windows.append((start, end))
     return windows
+
+
+# Function to evaluate LightGBM by segment
+def score_by_segment(test, forecasts, segments, segment_column):
+    frame = test[["article_id", TARGET]].copy()
+    for name, forecast in forecasts.items():
+        frame[name] = np.asarray(forecast)
+
+    frame = frame.merge(segments[["article_id", segment_column]], on="article_id", how="left")
+    frame[segment_column] = frame[segment_column].fillna("no_history")
+
+    rows = []
+    for segment, group in frame.groupby(segment_column):
+        row = {segment_column: segment, "rows": len(group), "mean_actual": group[TARGET].mean()}
+        for name in forecasts:
+            row[f"{name}_mae"] = mean_absolute_error(group[TARGET], group[name])
+            row[f"{name}_rmse"] = root_mean_squared_error(group[TARGET], group[name])
+        rows.append(row)
+
+    return pd.DataFrame(rows)
+
+# Define WAPE (Weight absolute percentage error)
+def wape(actual, forecast):
+    return (actual - forecast).abs().sum() / actual.sum()
+
+
+def wape_by_level(frame, forecast_names, levels):
+    rows = []
+    for level, keys in levels.items():
+        totals = frame.groupby(keys)[["actual"] + forecast_names].sum()
+        row = {"level": level, "groups": len(totals)}
+        for name in forecast_names:
+            row[name] = wape(totals["actual"], totals[name])
+        rows.append(row)
+
+    return pd.DataFrame(rows)
+
+
 

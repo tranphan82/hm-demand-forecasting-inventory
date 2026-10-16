@@ -12,6 +12,8 @@ from hm_forecasting.modeling import (
     root_mean_squared_error,
     train_lightgbm,
     backtest_windows,
+    score_by_segment,
+    wape_by_level, 
 
 )
 
@@ -134,4 +136,40 @@ def test_build_train_test_categorical_share_categories(train_test_con):
     for column in CATEGORICAL_COLUMNS:
         assert str(train[column].dtype) == "category"
         assert list(train[column].cat.categories) == list(test[column].cat.categories)
+
+# Test to function evaluate LightGBM by segment
+def test_score_by_segment_scores_each_group_separately():
+    test = pd.DataFrame({
+        "article_id": ["A", "A", "B", "C"],
+        "quantity_sold": [2, 4, 0, 6],
+    })
+    forecasts = {"zero": [0, 0, 0, 0], "model": [1, 5, 0, 6]}
+    segments = pd.DataFrame({"article_id": ["A", "B"], "seg": ["x", "y"]})
+
+    result = score_by_segment(test, forecasts, segments, "seg").set_index("seg")
+
+    assert result.loc["x", "rows"] == 2
+    assert result.loc["x", "mean_actual"] == 3.0
+    assert result.loc["x", "zero_mae"] == 3.0
+    assert result.loc["x", "model_mae"] == 1.0
+    assert result.loc["no_history", "zero_mae"] == 6.0
+    assert result.loc["no_history", "model_mae"] == 0.0
+
+
+# Test for WAPE
+def test_wape_by_level_shrinks_when_errors_cancel_out():
+    frame = pd.DataFrame({
+        "sales_date": pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-01", "2024-01-02"]),
+        "article_id": ["A", "A", "B", "B"],
+        "actual": [1, 1, 2, 4],
+        "zero": [0, 0, 0, 0],
+        "model": [2, 0, 1, 5],
+    })
+    levels = {"article-day": ["article_id", "sales_date"], "all-day": ["sales_date"]}
+
+    result = wape_by_level(frame, ["zero", "model"], levels).set_index("level")
+
+    assert result.loc["article-day", "zero"] == 1.0
+    assert result.loc["article-day", "model"] == 0.5
+    assert result.loc["all-day", "model"] == 0.0
 
