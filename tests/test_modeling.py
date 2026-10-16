@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np 
 from datetime import date
 
 from hm_forecasting.modeling import (
@@ -14,6 +15,7 @@ from hm_forecasting.modeling import (
     backtest_windows,
     score_by_segment,
     wape_by_level, 
+    pinball_loss, 
 
 )
 
@@ -173,3 +175,11 @@ def test_wape_by_level_shrinks_when_errors_cancel_out():
     assert result.loc["article-day", "model"] == 0.5
     assert result.loc["all-day", "model"] == 0.0
 
+# Test for pinball_loss
+def test_pinball_loss_penalises_under_forecasts_more_at_high_tau():
+    actual = np.array([10, 10])
+    forecast = np.array([8, 12])
+
+    assert abs(pinball_loss(actual, forecast, 0.9) - 1.0) < 1e-9
+
+    

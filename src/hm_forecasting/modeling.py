@@ -151,5 +151,9 @@ def wape_by_level(frame, forecast_names, levels):
 
     return pd.DataFrame(rows)
 
+# A reusable scoring function - DEEPAR segment
+def pinball_loss(actual, forecast, tau):
+    diff = actual - forecast
+    return np.maximum(tau * diff, (tau - 1) * diff).mean()
 
 
