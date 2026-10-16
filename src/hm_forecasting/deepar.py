@@ -1,5 +1,6 @@
 import pandas as pd
 from datetime import timedelta 
+from hm_forecasting.segmentation import label_segments, product_segments
 
 # Function to define a sample of 3000 with timestop
 def select_intermittent_articles(
@@ -65,3 +66,16 @@ def build_series(con, article_ids, end_date):
         series.append({"item_id": article_id, "start": full_index[0], "target": target})
 
     return series
+
+# Function to select products by segment
+def select_articles_by_segment(
+    con, as_of_date, segment_labels, min_sales_days=30, sample_n=None
+):
+    segments = label_segments(product_segments(con, as_of_date))
+    chosen = segments[
+        segments["segment"].isin(segment_labels) & (segments["sales_days"] >= min_sales_days)
+    ]
+    if sample_n is not None and sample_n < len(chosen):
+        chosen = chosen.sample(n=sample_n, random_state=42)
+    return sorted(chosen["article_id"].tolist())
+

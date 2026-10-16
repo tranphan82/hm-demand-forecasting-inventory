@@ -1,7 +1,7 @@
 import pandas as pd
 from datetime import date
 
-from hm_forecasting.deepar import (select_intermittent_articles, build_series)
+from hm_forecasting.deepar import (select_intermittent_articles, build_series, select_articles_by_segment)
 
 AS_OF = date(2024, 4, 10)
 RULES = {"min_sales_days": 5, "min_active_days": 60, "min_recent_sales": 0}
@@ -50,3 +50,26 @@ def test_build_series_returns_one_series_per_product(intermittent_con):
 
     assert [s["item_id"] for s in series] == ["A_SPARSE", "F_SPARSE2"]
     assert series[1]["target"].tolist() == [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+# Test for DEEPAR's population from the segmentation
+def test_select_articles_by_segment_filters_on_segment_and_sales_days(segments_con):
+    wanted = ["active/intermittent", "active/lumpy"]
+
+    assert select_articles_by_segment(
+        segments_con, AS_OF, wanted, min_sales_days=5
+    ) == ["INTERMITTENT", "LUMPY"]
+    assert select_articles_by_segment(
+        segments_con, AS_OF, wanted, min_sales_days=25
+    ) == []
+
+
+def test_select_articles_by_segment_sample_is_exact_and_repeatable(segments_con):
+    wanted = ["active/intermittent", "active/lumpy"]
+
+    first = select_articles_by_segment(segments_con, AS_OF, wanted, min_sales_days=5, sample_n=1)
+    second = select_articles_by_segment(segments_con, AS_OF, wanted, min_sales_days=5, sample_n=1)
+
+    assert len(first) == 1
+    assert first == second
+
+    

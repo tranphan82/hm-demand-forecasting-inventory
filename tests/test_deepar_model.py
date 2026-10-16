@@ -4,7 +4,7 @@ import pytest
 
 pytest.importorskip("gluonts")
 
-from hm_forecasting.deepar_model import forecast_samples, train_deepar
+from hm_forecasting.deepar_model import forecast_samples, train_deepar, forecast_totals
 
 
 def test_deepar_trains_and_returns_non_negative_sample_paths():
@@ -31,3 +31,10 @@ def test_deepar_trains_and_returns_non_negative_sample_paths():
     assert set(samples) == {f"S{i}" for i in range(6)}
     assert samples["S0"].shape == (20, 7)
     assert (samples["S0"] >= 0).all()
+
+    # That confirms one total per simulated future (20 in the test) and no negative demand.
+    totals = forecast_totals(predictor, series)
+    assert totals["S0"].shape == (20,)
+    assert (totals["S0"] >= 0).all()
+
+    

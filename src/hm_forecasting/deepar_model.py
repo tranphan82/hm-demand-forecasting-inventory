@@ -29,3 +29,9 @@ def train_deepar(
 def forecast_samples(predictor, series):
     forecasts = predictor.predict(ListDataset(series, freq="D"))
     return {forecast.item_id: forecast.samples for forecast in forecasts}
+
+# Function for distribution of total demand over the horizon
+def forecast_totals(predictor, series):
+    forecasts = predictor.predict(ListDataset(series, freq="D"))
+    return {forecast.item_id: forecast.samples.sum(axis=1) for forecast in forecasts}
+
