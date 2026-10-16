@@ -1,3 +1,4 @@
+import numpy as np
 from datetime import timedelta
 
 
@@ -56,3 +57,12 @@ def product_segments(
         "cv2_cutoff": cv2_cutoff,
     }).fetchdf()
 
+# A helper for segment label (four-window segment evaluation)
+def label_segments(segments):
+    labelled = segments.copy()
+    labelled["segment"] = np.where(
+        labelled["lifecycle"] == "active",
+        "active/" + labelled["demand_pattern"],
+        labelled["lifecycle"],
+    )
+    return labelled
