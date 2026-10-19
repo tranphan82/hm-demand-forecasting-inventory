@@ -72,3 +72,23 @@ if __name__ == "__main__":
             ["article_id", "segment", "actual", "recent_rate", "p50", "deepar_mean", "p90"]
         ].round(1).to_string(index=False)
     )
+
+    def max_window_total(target, window=HORIZON):
+        cumulative = np.concatenate([[0.0], np.cumsum(target)])
+        if len(target) < window:
+            return cumulative[-1]
+        return (cumulative[window:] - cumulative[:-window]).max()
+
+    results["hist_max"] = [max_window_total(s["target"]) for s in train_series]
+    runaway = results["p50"] > 3 * results["hist_max"]
+    print(f"\nRunaway forecasts (P50 above 3x best-ever 28-day total): {runaway.mean():.2%} of products")
+
+    capped = results.assign(
+        deepar_mean=np.minimum(results["deepar_mean"], 3 * results["hist_max"]),
+        p90=np.minimum(results["p90"], 3 * results["hist_max"]),
+    )
+    print("\nWith forecasts capped at 3x best-ever 28-day total:")
+    print(capped.groupby("segment").apply(summarise, include_groups=False).round(4).to_string())
+
+
+    
