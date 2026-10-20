@@ -8,7 +8,7 @@ from hm_forecasting.deepar import build_series, select_articles_by_segment
 from hm_forecasting.deepar_model import forecast_totals, train_deepar
 from hm_forecasting.modeling import pinball_loss, root_mean_squared_error
 from hm_forecasting.segmentation import label_segments, product_segments
-from hm_forecasting.baselines import tsb_rate
+from hm_forecasting.baselines import tsb_rate, empirical_quantile_total
 
 
 ORIGIN = date(2020, 8, 25)
@@ -41,6 +41,7 @@ if __name__ == "__main__":
         "actual": [actual_by_id[i][-HORIZON:].sum() for i in ids],
         "recent_rate": [s["target"][-HORIZON:].mean() * HORIZON for s in train_series],
         "tsb": [tsb_rate(s["target"]) * HORIZON for s in train_series],
+        "emp_p90": [empirical_quantile_total(s["target"], HORIZON, 0.9) for s in train_series],
         "deepar_mean": totals.mean(axis=1),
         "p90": np.percentile(totals, 90, axis=1),
     })
@@ -53,10 +54,12 @@ if __name__ == "__main__":
             "mean_actual": actual.mean(),
             "rmse_zero": root_mean_squared_error(actual, 0.0),
             "rmse_recent": root_mean_squared_error(actual, group["recent_rate"]),
-             "rmse_tsb": root_mean_squared_error(actual, group["tsb"]),
+            "rmse_tsb": root_mean_squared_error(actual, group["tsb"]),
             "rmse_deepar": root_mean_squared_error(actual, group["deepar_mean"]),
             "pinball_zero": pinball_loss(actual, 0.0, 0.9),
             "pinball_deepar": pinball_loss(actual, group["p90"], 0.9),
+            "pinball_empirical": pinball_loss(actual, group["emp_p90"], 0.9),
+            "empirical_coverage": (actual <= group["emp_p90"]).mean(),
             "p90_coverage": (actual <= group["p90"]).mean(),
         })
 
