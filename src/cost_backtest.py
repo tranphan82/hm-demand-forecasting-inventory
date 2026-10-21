@@ -10,7 +10,7 @@ from hm_forecasting.inventory import assumptions_for_class, k_from_cis
 from hm_forecasting.policy import normal_stock, period_cost, quantile_stock
 from hm_forecasting.segmentation import label_segments, product_segments
 
-ORIGIN = date(2020, 6, 24)
+ORIGIN = date(2019, 12, 26)
 HORIZON = 91
 PLANNER_K = 1.645
 CAP_MULTIPLE = 3
@@ -20,7 +20,7 @@ POLICIES = ["planner", "cis_normal", "hist_quantile", "deepar_quantile", "segmen
 
 
 if __name__ == "__main__":
-    saved = np.load("data/processed/deepar_totals.npz")
+    saved = np.load(f"data/processed/deepar_totals_{ORIGIN}.npz")
     ids = saved["ids"].tolist()
     totals = saved["totals"]
 

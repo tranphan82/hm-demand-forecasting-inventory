@@ -11,7 +11,7 @@ from hm_forecasting.segmentation import label_segments, product_segments
 from hm_forecasting.baselines import tsb_rate, empirical_quantile_total
 
 
-ORIGIN = date(2020, 6, 24)
+ORIGIN = date(2019, 12, 26)
 HORIZON = 91
 SEGMENTS = ["active/smooth", "active/erratic", "active/intermittent", "active/lumpy"]
 
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     totals = np.stack([totals_by_id[i] for i in ids])
 
     # Save the forecast totals once, so we don't need to repeat training DeepAR every time we adjust an assumptions
-    np.savez_compressed("data/processed/deepar_totals.npz", ids=np.array(ids), totals=totals)
+    np.savez_compressed(f"data/processed/deepar_totals_{ORIGIN}.npz", ids=np.array(ids), totals=totals)
 
     results = pd.DataFrame({
         "article_id": ids,
