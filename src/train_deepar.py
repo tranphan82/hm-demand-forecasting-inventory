@@ -11,9 +11,9 @@ from hm_forecasting.segmentation import label_segments, product_segments
 from hm_forecasting.baselines import tsb_rate, empirical_quantile_total
 
 
-ORIGIN = date(2020, 8, 25)
-HORIZON = 28
-SEGMENTS = ["active/intermittent", "active/lumpy"]
+ORIGIN = date(2020, 6, 24)
+HORIZON = 91
+SEGMENTS = ["active/smooth", "active/erratic", "active/intermittent", "active/lumpy"]
 
 if __name__ == "__main__":
     con = duckdb.connect("hm_retail.duckdb", read_only=True)
@@ -28,7 +28,11 @@ if __name__ == "__main__":
 
     print("Training DeepAR...")
     predictor = train_deepar(
-        train_series, prediction_length=HORIZON, max_epochs=10, num_batches_per_epoch=100
+        train_series,
+        prediction_length=HORIZON,
+        context_length=182,
+        max_epochs=10,
+        num_batches_per_epoch=100,
     )
     totals_by_id = forecast_totals(predictor, train_series)
 
@@ -36,6 +40,10 @@ if __name__ == "__main__":
     actual_by_id = {s["item_id"]: s["target"] for s in actual_series}
 
     totals = np.stack([totals_by_id[i] for i in ids])
+
+    # Save the forecast totals once, so we don't need to repeat training DeepAR every time we adjust an assumptions
+    np.savez_compressed("data/processed/deepar_totals.npz", ids=np.array(ids), totals=totals)
+
     results = pd.DataFrame({
         "article_id": ids,
         "actual": [actual_by_id[i][-HORIZON:].sum() for i in ids],
@@ -88,13 +96,13 @@ if __name__ == "__main__":
 
     results["hist_max"] = [max_window_total(s["target"]) for s in train_series]
     runaway = results["p50"] > 3 * results["hist_max"]
-    print(f"\nRunaway forecasts (P50 above 3x best-ever 28-day total): {runaway.mean():.2%} of products")
+    print(f"\nRunaway forecasts (P50 above 3x best-ever 91-day total): {runaway.mean():.2%} of products")
 
     capped = results.assign(
         deepar_mean=np.minimum(results["deepar_mean"], 3 * results["hist_max"]),
         p90=np.minimum(results["p90"], 3 * results["hist_max"]),
     )
-    print("\nWith forecasts capped at 3x best-ever 28-day total:")
+    print("\nWith forecasts capped at 3x best-ever 91-day total:")
     print(capped.groupby("segment").apply(summarise, include_groups=False).round(4).to_string())
 
 
