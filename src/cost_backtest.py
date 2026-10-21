@@ -6,18 +6,12 @@ import pandas as pd
 
 from hm_forecasting.baselines import rolling_window_totals
 from hm_forecasting.deepar import build_series
-from hm_forecasting.inventory import assumptions_for_class, k_from_cis
-from hm_forecasting.policy import normal_stock, period_cost, quantile_stock
+from hm_forecasting.inventory import GOODWILL_BY_CLASS, CostAssumptions, assumptions_for_class
+from hm_forecasting.policy import evaluate_policies, summarise_policies
 from hm_forecasting.segmentation import label_segments, product_segments
 
-ORIGIN = date(2019, 12, 26)
+ORIGIN = date(2020, 6, 24)
 HORIZON = 91
-PLANNER_K = 1.645
-CAP_MULTIPLE = 3
-DEEPAR_SEGMENTS = ["active/intermittent", "active/lumpy"]
-POLICIES = ["planner", "cis_normal", "hist_quantile", "deepar_quantile", "segment_choice"]
-
-
 
 if __name__ == "__main__":
     saved = np.load(f"data/processed/deepar_totals_{ORIGIN}.npz")
@@ -33,60 +27,52 @@ if __name__ == "__main__":
     }
     con.close()
 
-    costs = {c: assumptions_for_class(c, horizon_days=HORIZON) for c in "ABC"}
-
-    rows = []
-    for i, article_id in enumerate(ids):
-        windows = rolling_window_totals(train[article_id], HORIZON)
-        mean, std, peak = windows.mean(), windows.std(), windows.max()
-
-        volume_class = segments.loc[article_id, "volume_class"]
-        c = costs[volume_class]
-        k = k_from_cis(q=HORIZON, ce=c.holding_cost_per_year, d=365, cs=c.shortage_cost)
-
-        stocks = {
-            "planner": normal_stock(mean, std, PLANNER_K),
-            "cis_normal": normal_stock(mean, std, k),
-            "hist_quantile": quantile_stock(windows, c.service_level),
-            "deepar_quantile": min(
-                quantile_stock(totals[i], c.service_level), CAP_MULTIPLE * peak
-            ),
-        }
-
-        stocks["segment_choice"] = (
-            stocks["deepar_quantile"]
-            if segments.loc[article_id, "segment"] in DEEPAR_SEGMENTS
-            else stocks["hist_quantile"]
-        )
-
-        row = {
+    products = [
+        {
             "article_id": article_id,
             "segment": segments.loc[article_id, "segment"],
-            "volume_class": volume_class,
+            "volume_class": segments.loc[article_id, "volume_class"],
+            "windows": rolling_window_totals(train[article_id], HORIZON),
+            "samples": totals[i],
             "actual": actual[article_id],
         }
-        for name, stock in stocks.items():
-            row[f"{name}_stock"] = stock
-            row[f"{name}_cost"] = period_cost(
-                row["actual"], stock, c.shortage_cost, c.excess_cost_per_period
-            )
-        rows.append(row)
-
-    results = pd.DataFrame(rows)
-
-    def summarise(group):
-        sales = group["actual"].sum()
-        out = {"products": len(group)}
-        for name in POLICIES:
-            out[f"{name}_cost%"] = 100 * group[f"{name}_cost"].sum() / sales
-        for name in POLICIES:
-            out[f"{name}_stockout"] = (group["actual"] > group[f"{name}_stock"]).mean()
-        return pd.Series(out)
+        for i, article_id in enumerate(ids)
+    ]
 
     pd.set_option("display.width", 250)
+
+    base_costs = {c: assumptions_for_class(c, horizon_days=HORIZON) for c in "ABC"}
+    results = evaluate_policies(products, base_costs, HORIZON)
     for column in ["segment", "volume_class"]:
         print(f"\nBy {column}:")
-        print(results.groupby(column).apply(summarise, include_groups=False).round(3).to_string())
+        print(results.groupby(column).apply(summarise_policies, include_groups=False).round(3).to_string())
     print("\nAll products:")
-    print(summarise(results).round(3).to_string())
+    print(summarise_policies(results).round(3).to_string())
+
+    scenarios = []
+    for scale in [0.0, 0.5, 1.0, 2.0]:
+        for markdown in [0.4, 0.6, 0.8]:
+            costs = {
+                c: CostAssumptions(
+                    goodwill_multiplier=GOODWILL_BY_CLASS[c] * scale,
+                    clearance_markdown=markdown,
+                    horizon_days=HORIZON,
+                )
+                for c in "ABC"
+            }
+            summary = summarise_policies(evaluate_policies(products, costs, HORIZON))
+            scenarios.append({
+                "goodwill_scale": scale,
+                "markdown": markdown,
+                "service_A": costs["A"].service_level,
+                "service_C": costs["C"].service_level,
+                "planner_cost%": summary["planner_cost%"],
+                "segment_choice_cost%": summary["segment_choice_cost%"],
+            })
+
+    sensitivity = pd.DataFrame(scenarios)
+    sensitivity["saving%"] = 100 * (1 - sensitivity["segment_choice_cost%"] / sensitivity["planner_cost%"])
+    print("\nSensitivity to cost assumptions:")
+    print(sensitivity.round(3).to_string(index=False))
+
 
