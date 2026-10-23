@@ -23,3 +23,6 @@ READ ME.docx
 
 # DeepAr training make PyTorch Lightning write a lightning_logs/
 lightning_logs/
+
+# This line is for the test environment never gets committed
+#.venv-ci/ 
